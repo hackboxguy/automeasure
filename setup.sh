@@ -44,7 +44,7 @@ fi
 #install dependencies
 printf "Installing dependencies ................................ "
 DEBIAN_FRONTEND=noninteractive apt-get update --fix-missing < /dev/null > /dev/null
-DEBIAN_FRONTEND=noninteractive apt-get install -qq imagemagick cmake git libjson-c-dev fim < /dev/null > /dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim < /dev/null > /dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 printf "Configuring automeasure components...................... "
