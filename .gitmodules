@@ -1,3 +1,6 @@
 [submodule "brbox"]
 	path = brbox
 	url = https://github.com/hackboxguy/brbox.git
+[submodule "usb-tempered"]
+	path = usb-tempered
+	url = https://github.com/hackboxguy/usb-tempered.git

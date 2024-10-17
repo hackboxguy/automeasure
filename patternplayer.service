@@ -2,9 +2,9 @@
 Description=patternplayer
 [Service]
 User=pi
-Environment=LD_LIBRARY_PATH=/mnt/old-nvm/git/automeasure/brbox/output/lib
+Environment=LD_LIBRARY_PATH=/home/pi/automeasure/brbox/output/lib
 Environment=BRBOX_BOARD_TYPE=RASPI_BPLUS
-ExecStart=/mnt/old-nvm/git/automeasure/brbox/output/bin/mplaysrv --boardtype=${BRBOX_BOARD_TYPE}
-ExecStop=/mnt/old-nvm/git/automeasure/brbox/output/bin/mplayclt --shutdown
+ExecStart=/home/pi/automeasure/brbox/output/bin/mplaysrv --boardtype=${BRBOX_BOARD_TYPE}
+ExecStop=/home/pi/automeasure/brbox/output/bin/mplayclt --shutdown
 [Install]
 WantedBy=multi-user.target
