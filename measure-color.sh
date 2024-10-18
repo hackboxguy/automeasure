@@ -17,7 +17,7 @@ YFILE="none"
 STARTUPIMG="none"
 MEASUREONLY="no"
 x=1
-USAGE="usage: $0 --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --tempered=/path/to/tempered --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
+USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --tempered=/path/to/tempered --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
 NOARGS="yes"
 
 MYPATH=$(pwd) #get the path via cmdline args
@@ -130,7 +130,12 @@ while getopts "$optspec" optchar; do
                         [ ! -z $MEASUREONLY ] && MEASUREONLY=${val}
                         NOARGS="no"
                         ;;
-
+                    mypath=*) #yes/no
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $MYPATH ] && MYPATH=${val}
+                        NOARGS="no"
+                        ;;
                 *)
                     if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
                         echo "Unknown option:"

@@ -3,6 +3,7 @@ Description=automeasure
 Requires=patternplayer.service
 [Service]
 User=pi
+ExecStartPre=/bin/sleep 10
 ExecStart=/home/pi/automeasure/measure.sh /home/pi/automeasure/config.json
 [Install]
 WantedBy=multi-user.target
