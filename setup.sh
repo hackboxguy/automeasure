@@ -62,7 +62,13 @@ systemctl enable $MYPATH/patternplayer.service 1>/dev/null 2>/dev/null
 systemctl start patternplayer.service 1>/dev/null 2>/dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
-printf "Creating png pattern files.............................. "
+printf "Enabling automeasure service............................ "
+sed -i "s|/home/pi/automeasure|$MYPATH|g" automeasure.service
+systemctl enable $MYPATH/automeasure.service 1>/dev/null 2>/dev/null
+systemctl start automeasure.service 1>/dev/null 2>/dev/null
+test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
+
+printf "Creating png pattern files............................. "
 mkdir -p $MYPATH/patterns
 #if [ $DISP_TYPE = "1920x1080" ]; then
 #elif [ $DISP_TYPE = "14.6" ]; then

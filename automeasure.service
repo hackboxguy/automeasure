@@ -1,0 +1,8 @@
+[Unit]
+Description=automeasure
+Requires=patternplayer.service
+[Service]
+User=pi
+ExecStart=/home/pi/automeasure/measure.sh /home/pi/automeasure/config.json
+[Install]
+WantedBy=multi-user.target

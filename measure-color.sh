@@ -20,7 +20,7 @@ x=1
 USAGE="usage: $0 --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --tempered=/path/to/tempered --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
 NOARGS="yes"
 
-MYPATH=$(pwd)
+MYPATH=$(pwd) #get the path via cmdline args
 export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
 ###############################################################################
 #this function prints out the color and temperature sample of a given primary(rgb/w)
