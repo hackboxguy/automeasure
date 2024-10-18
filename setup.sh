@@ -64,6 +64,7 @@ test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 printf "Enabling automeasure service............................ "
 sed -i "s|/home/pi/automeasure|$MYPATH|g" automeasure.service
+sed -i "s|/home/pi/automeasure|$MYPATH|g" measure.sh
 systemctl enable $MYPATH/automeasure.service 1>/dev/null 2>/dev/null
 systemctl start automeasure.service 1>/dev/null 2>/dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
@@ -81,21 +82,6 @@ convert -size "$DISP_RES" xc:rgb\(000,255,255\) $MYPATH/patterns/cyan.png
 convert -size "$DISP_RES" xc:rgb\(255,000,255\) $MYPATH/patterns/magenta.png
 convert -size "$DISP_RES" xc:rgb\(255,255,000\) $MYPATH/patterns/yellow.png
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
-
-#printf "Updating config.txt..................................... "
-#if [ $DISP_TYPE = "14.6" ]; then
-#	cp ./config-14-6.txt /boot/firmware/config.txt 
-#elif [ $DISP_TYPE = "15.6" ]; then
-#	cp ./config-15-6.txt /boot/firmware/config.txt 
-#else
-#	echo "Invalid Display type arg!"
-#	exit 1
-#fi
-#test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
-
-#printf "Stitching demo-media-file............................... "
-#cat neo-qled-demo-?? > neo-qled-demo-1.h264
-#test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 sync
 printf "Installation complete, reboot the system................ \n"
