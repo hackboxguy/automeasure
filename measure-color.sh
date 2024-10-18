@@ -29,7 +29,7 @@ Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempe
 {
     if [ $4 = "none" ]; then
         $5 --showimg=none --showimg=$1 > /dev/null
-        sleep 2
+        sleep 5
     fi
     
     #lets take the time stamp
@@ -47,7 +47,7 @@ Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempe
     WORDS=$(echo "$VAL"|wc -c)
     if [ $WORDS = 1 ]; then #color sample failed, try again
             #echo "failed first read"
-            sleep 3
+            sleep 5
             VAL=$(sudo spotread -x -O | grep Result | sed 's/ Result is //' | sed 's/XYZ://' | sed 's/Yxy://' | sed 's/,//')
             WORDS=$(echo "$VAL"|wc -c)
             if [ $WORDS = 1 ]; then #color sample failed, try again
@@ -192,21 +192,25 @@ while [ $x -le $LOOPCOUNT ]; do
 	if [ $WFILE != "none" ]; then
         Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
 		[ $? != 0 ] && exit 0
+        sleep 5
 	fi
 	
 	if [ $RFILE != "none" ]; then
         Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
 		[ $? != 0 ] && exit 0
+        sleep 5
 	fi
 
 	if [ $GFILE != "none" ]; then
         Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
 		[ $? != 0 ] && exit 0
+        sleep 5
 	fi
 	
 	if [ $BFILE != "none" ]; then
         Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
 		[ $? != 0 ] && exit 0
+        sleep 5
 	fi
 	
     #wait between measurements if asked
