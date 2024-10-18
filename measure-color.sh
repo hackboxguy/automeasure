@@ -3,6 +3,7 @@
 #ensure "sudo apt-get install argyll mpv" so that spotread binary and mpv are installed
 #ensure --wfile=/path/to/wfile.png exists for required resolution for white color
 #for --tempered=/path/to/tempered_binary ensure required tempered binary exists
+#when invoking this script, ensure export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
 ###############################################################################
 LOOPCOUNT="none" #for 1hour, 120 samples@30sec/sample
 INTERVAL="none"
@@ -21,7 +22,7 @@ USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --inte
 NOARGS="yes"
 
 MYPATH=$(pwd) #get the path via cmdline args
-export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
+#export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
 ###############################################################################
 #this function prints out the color and temperature sample of a given primary(rgb/w)
 Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path
