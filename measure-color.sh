@@ -43,7 +43,7 @@ Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempe
 		TEMP="N/A"
 	fi
 	#if requested, take the sample of the power(voltage/current) from korad-ka3005p power-supply
-	if [ $3 != "none" ]; then
+	if [ $6 != "none" ]; then
 		TMPPOWER=$($6 status)
 		VOLTAGE=$(echo $TMPPOWER | awk '{print $2}')
 		CURRENT=$(echo $TMPPOWER | awk '{print $5}')
