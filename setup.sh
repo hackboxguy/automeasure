@@ -21,7 +21,7 @@ fi
 MYPATH=$(pwd)
 
 if [ $PATTERNS_ONLY = "yes" ]; then
-	printf "Creating png pattern files.............................. "
+	printf "Creating png pattern files............................... "
 	mkdir -p $MYPATH/patterns
 	convert -size "$DISP_RES" xc:rgb\(255,255,255\) $MYPATH/patterns/white.png
 	convert -size "$DISP_RES" xc:rgb\(255,000,000\) $MYPATH/patterns/red.png
