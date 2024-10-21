@@ -7,4 +7,4 @@ export LD_LIBRARY_PATH=/home/pi/automeasure/brbox/output/lib
 
 #white measurement(keep the pattern fixed
 /home/pi/automeasure/brbox/output/bin/mplayclt --showimg=none --showimg=/home/pi/automeasure/patterns/white.png
-/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=8000 --interval=20 --tempered=tempered --wfile=white.png --startupimg=white.png --measureonly=yes > /home/pi/automeasure/$DATE.csv
+/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=8000 --interval=20 --power=ka3005p --tempered=tempered --wfile=white.png --startupimg=white.png --measureonly=yes > /home/pi/automeasure/$DATE.csv

@@ -8,6 +8,7 @@
 LOOPCOUNT="none" #for 1hour, 120 samples@30sec/sample
 INTERVAL="none"
 TEMPERED="none"
+POWER="none"
 WFILE="none"
 RFILE="none"
 GFILE="none"
@@ -18,28 +19,37 @@ YFILE="none"
 STARTUPIMG="none"
 MEASUREONLY="no"
 x=1
-USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --tempered=/path/to/tempered --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
+USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --tempered=/path/to/tempered --power=/path/to/powermeas --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
 NOARGS="yes"
 
 MYPATH=$(pwd) #get the path via cmdline args
 #export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
 ###############################################################################
 #this function prints out the color and temperature sample of a given primary(rgb/w)
-Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path
+Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path $6=/path/to/ka3005p
 {
-    if [ $4 = "none" ]; then
-        $5 --showimg=none --showimg=$1 > /dev/null
-        sleep 5
-    fi
+	if [ $4 = "none" ]; then
+		$5 --showimg=none --showimg=$1 > /dev/null
+		sleep 5
+	fi
     
-    #lets take the time stamp
+	#lets take the time stamp
 	DATE=$(date "+%D,%T")
 
 	#if requested, take the sample of the temperature from the usb-temperature sensor 
 	if [ $3 != "none" ]; then
-		    TEMP=$(sudo $3 | awk '{print $4}')
-    else
-		    TEMP="N/A"
+		TEMP=$(sudo $3 | awk '{print $4}')
+	else
+		TEMP="N/A"
+	fi
+	#if requested, take the sample of the power(voltage/current) from korad-ka3005p power-supply
+	if [ $3 != "none" ]; then
+		TMPPOWER=$($6 status)
+		VOLTAGE=$(echo $TMPPOWER | awk '{print $2}')
+		CURRENT=$(echo $TMPPOWER | awk '{print $5}')
+	else
+		VOLTAGE="N/A"
+		CURRENT="N/A"
 	fi
 
    	#read the color/brightness sensor(try 3 times before giving up)
@@ -59,14 +69,14 @@ Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempe
 
 	#fetch individual values to the corresponding variables 
 	XVAL=$(echo $VAL | awk '{print $1}')
-    YVAL=$(echo $VAL | awk '{print $2}')
-    ZVAL=$(echo $VAL | awk '{print $3}')
-    YCVAL=$(echo $VAL | awk '{print $4}')
-    xVAL=$(echo $VAL | awk '{print $5}')
-    yVAL=$(echo $VAL | awk '{print $6}')
+	YVAL=$(echo $VAL | awk '{print $2}')
+	ZVAL=$(echo $VAL | awk '{print $3}')
+	YCVAL=$(echo $VAL | awk '{print $4}')
+	xVAL=$(echo $VAL | awk '{print $5}')
+	yVAL=$(echo $VAL | awk '{print $6}')
     
-    #print out the sampled temperature and color/brightness data 
-	echo "$DATE,$TEMP,$2,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL"
+	#print out the sampled temperature and color/brightness data
+	echo "$DATE,$TEMP,$2,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL,$VOLTAGE,$CURRENT"
 	return 0
 }
 
@@ -94,7 +104,13 @@ while getopts "$optspec" optchar; do
                         [ ! -z $TEMPERED ] && TEMPERED=${val}
                         NOARGS="no"
                         ;;
-                    wfile=*) #yes/no
+                    power=*) #/path/to/power-measure-tool
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $POWER ] && POWER=${val}
+                        NOARGS="no"
+                        ;;
+	            wfile=*) #yes/no
                         val=${OPTARG#*=}
                         opt=${OPTARG%=$val}
                         [ ! -z $WFILE ] && WFILE=${val}
@@ -163,6 +179,8 @@ if [ ${NOARGS} = "yes" ] ; then
 fi
 
 TEMPEREDPATH="$MYPATH/Output/usb-tempered/utils/$TEMPERED"
+#POWERPATH="$MYPATH/ka3005p/target/release/$POWER"
+POWERPATH="$MYPATH/binaries/$POWER"
 MPLAYCLT="$MYPATH/brbox/output/bin/mplayclt"
 WFILEPATH="$MYPATH/patterns/$WFILE"
 RFILEPATH="$MYPATH/patterns/$RFILE"
@@ -171,6 +189,7 @@ BFILEPATH="$MYPATH/patterns/$BFILE"
 
 #if valid files doesnt exists, then dont access them
 [ ! -f  $TEMPEREDPATH  ] && TEMPEREDPATH="none" 
+[ ! -f  $POWERPATH  ] && POWERPATH="none"
 [ ! -f  $MPLAYCLT  ] && MPLAYCLT="none" 
 [ ! -f  $WFILEPATH  ] && WFILEPATH="none" 
 [ ! -f  $RFILEPATH  ] && RFILEPATH="none" 
@@ -186,29 +205,29 @@ if [ $MEASUREONLY = "no" ]; then
 fi
 
 #lets output the heading for csv file
-echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y"
+echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current"
 while [ $x -le $LOOPCOUNT ]; do
 
 	if [ $WFILE != "none" ]; then
-        Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
+        Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 	
 	if [ $RFILE != "none" ]; then
-        Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
+        Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 
 	if [ $GFILE != "none" ]; then
-        Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
+        Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 	
 	if [ $BFILE != "none" ]; then
-        Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT
+        Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
