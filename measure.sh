@@ -20,8 +20,8 @@ fi
 #1-initial triangle
 /home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=3 --interval=5 $PSARG $TEMPARG --wfile=white.png --rfile=red.png --gfile=green.png --bfile=blue.png > /home/pi/automeasure/rgbw-begin.csv
 
-#2-white measurement(keep the pattern fixed
-/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=10 --interval=20 $PSARG $TEMPARG --wfile=white.png --startupimg=white.png --measureonly=yes > /home/pi/automeasure/$DATE.csv
+#2-white measurement(keep the pattern fixed(loop 400=3hours)
+/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=400 --interval=20 $PSARG $TEMPARG --wfile=white.png --startupimg=white.png > /home/pi/automeasure/$DATE.csv
 
 #3-initial triangle
 /home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=3 --interval=5 $PSARG $TEMPARG --wfile=white.png --rfile=red.png --gfile=green.png --bfile=blue.png > /home/pi/automeasure/rgbw-end.csv
