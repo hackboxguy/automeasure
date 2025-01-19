@@ -18,6 +18,7 @@ MFILE="none"
 YFILE="none"
 STARTUPIMG="none"
 MEASUREONLY="no"
+BRLEVEL="100"
 x=1
 USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --temp=/path/to/tempered --power=/path/to/powermeas --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
 NOARGS="yes"
@@ -26,8 +27,13 @@ MYPATH=$(pwd) #get the path via cmdline args
 #export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
 ###############################################################################
 #this function prints out the color and temperature sample of a given primary(rgb/w)
-Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path $6=/path/to/ka3005p
+Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path $6=/path/to/ka3005p,$7=path-to-tempered,$8=BrightnessLevel
 {
+	if [ $8 != "none" ]; then
+		BRLVL=$8
+	else
+		BRLVL="100"
+	fi
 	if [ $4 = "none" ]; then
 		$5 --showimg=none --showimg=$1 > /dev/null
 		sleep 5
@@ -76,7 +82,7 @@ Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempe
 	yVAL=$(echo $VAL | awk '{print $6}')
     
 	#print out the sampled temperature and color/brightness data
-	echo "$DATE,$TEMP,$2,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL,$VOLTAGE,$CURRENT"
+	echo "$DATE,$TEMP,$2,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL,$VOLTAGE,$CURRENT,$BRLVL"
 	return 0
 }
 
@@ -135,7 +141,31 @@ while getopts "$optspec" optchar; do
                         [ ! -z $BFILE ] && BFILE=${val}
                         NOARGS="no"
                         ;;
-                    startupimg=*) #white/red/green/cyan/magenta/yellow
+                    cfile=*) #yes/no
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $CFILE ] && CFILE=${val}
+                        NOARGS="no"
+                        ;;
+                    mfile=*) #yes/no
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $MFILE ] && MFILE=${val}
+                        NOARGS="no"
+                        ;;
+                    yfile=*) #yes/no
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $YFILE ] && YFILE=${val}
+                        NOARGS="no"
+                        ;;
+                    brlevel=*) #brightnesslevel
+                        val=${OPTARG#*=}
+                        opt=${OPTARG%=$val}
+                        [ ! -z $BRLEVEL ] && BRLEVEL=${val}
+                        NOARGS="no"
+                        ;;
+		    startupimg=*) #white/red/green/cyan/magenta/yellow
                         val=${OPTARG#*=}
                         opt=${OPTARG%=$val}
                         [ ! -z $STARTUPIMG ] && STARTUPIMG=${val}
@@ -186,6 +216,9 @@ WFILEPATH="$MYPATH/patterns/$WFILE"
 RFILEPATH="$MYPATH/patterns/$RFILE"
 GFILEPATH="$MYPATH/patterns/$GFILE"
 BFILEPATH="$MYPATH/patterns/$BFILE"
+CFILEPATH="$MYPATH/patterns/$CFILE"
+MFILEPATH="$MYPATH/patterns/$MFILE"
+YFILEPATH="$MYPATH/patterns/$YFILE"
 
 #if valid files doesnt exists, then dont access them
 [ ! -f  $TEMPEREDPATH  ] && TEMPEREDPATH="none" 
@@ -195,6 +228,9 @@ BFILEPATH="$MYPATH/patterns/$BFILE"
 [ ! -f  $RFILEPATH  ] && RFILEPATH="none" 
 [ ! -f  $GFILEPATH  ] && GFILEPATH="none" 
 [ ! -f  $BFILEPATH  ] && BFILEPATH="none" 
+[ ! -f  $CFILEPATH  ] && CFILEPATH="none"
+[ ! -f  $MFILEPATH  ] && MFILEPATH="none"
+[ ! -f  $YFILEPATH  ] && YFILEPATH="none"
 
 #TODO: check if spotread exists
 if [ $MEASUREONLY = "no" ]; then
@@ -205,33 +241,47 @@ if [ $MEASUREONLY = "no" ]; then
 fi
 
 #lets output the heading for csv file
-echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current"
+echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current,brightnesslevel"
 while [ $x -le $LOOPCOUNT ]; do
 
 	if [ $WFILE != "none" ]; then
-        Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
+        Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 	
 	if [ $RFILE != "none" ]; then
-        Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
+        Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 
 	if [ $GFILE != "none" ]; then
-        Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
+        Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
 	
 	if [ $BFILE != "none" ]; then
-        Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH
+        Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
 		[ $? != 0 ] && exit 0
         sleep 5
 	fi
-	
+	if [ $CFILE != "none" ]; then
+        Colour_Temp_Sample $CFILEPATH C $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
+                [ $? != 0 ] && exit 0
+        sleep 5
+        fi
+	if [ $MFILE != "none" ]; then
+        Colour_Temp_Sample $MFILEPATH M $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
+                [ $? != 0 ] && exit 0
+        sleep 5
+        fi
+	if [ $YFILE != "none" ]; then
+        Colour_Temp_Sample $YFILEPATH Y $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
+                [ $? != 0 ] && exit 0
+        sleep 5
+        fi
     #wait between measurements if asked
     if [ $INTERVAL != "none" ]; then
         sleep $INTERVAL

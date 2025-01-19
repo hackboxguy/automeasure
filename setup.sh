@@ -47,6 +47,12 @@ DEBIAN_FRONTEND=noninteractive apt-get update --fix-missing < /dev/null > /dev/n
 DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim < /dev/null > /dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
+# Check if the folder brbox exists
+if [ -z "$(ls -A brbox)" ]; then
+    echo "The folder brbox is empty, did u git clone with --recursive?"
+    exit 1
+fi
+
 printf "Configuring automeasure components...................... "
 cmake -H. -BOutput -DCMAKE_INSTALL_PREFIX=$MYPATH/brbox/output -DINSTALL_CLIENT=ON -DAUTO_SVN_VERSION=OFF 1>/dev/null 2>/dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
