@@ -44,21 +44,32 @@ BEGIN {
     num_colors = 4
 }
 
+# Function to check if a value is valid number
+function is_valid(val) {
+    return val != "" && val ~ /^[0-9]*\.?[0-9]+$/
+}
+
 # Skip header
 NR > 1 {
-    color = $4  # Sampled-Color column
-    x = $9      # x coordinate
-    y = $10     # y coordinate
+    color = $4   # Sampled-Color column
+    x = $9       # x coordinate
+    y = $10      # y coordinate
+    Y = $8       # Y (luminance) value
     
-    # Sum up values
-    sum_x[color] += x
-    sum_y[color] += y
-    count[color]++
+    # Only add values if all required fields are valid numbers
+    if (is_valid(x) && is_valid(y) && is_valid(Y)) {
+        sum_x[color] += x
+        sum_y[color] += y
+        sum_Y[color] += Y
+        count[color]++
+    } else if (color != "") {
+        print "Warning: Skipping incomplete data for " color " at line " NR > "/dev/stderr"
+    }
 }
 
 END {
     # Print header to output file
-    print "Color,x,y" > "'$OUTPUT'"
+    print "Color,x,y,Y" > "'$OUTPUT'"
     
     # Print colors in specified order
     for (i = 1; i <= num_colors; i++) {
@@ -66,7 +77,16 @@ END {
         if (count[color] > 0) {
             avg_x = sum_x[color] / count[color]
             avg_y = sum_y[color] / count[color]
-            printf "%s,%.4f,%.4f\n", color, avg_x, avg_y >> "'$OUTPUT'"
+            avg_Y = sum_Y[color] / count[color]
+            # Build output string piece by piece
+            out = color
+            out = out "," sprintf("%.4f", avg_x)
+            out = out "," sprintf("%.4f", avg_y)
+            out = out "," sprintf("%.3f", avg_Y)
+            print out >> "'$OUTPUT'"
+            print "Info: " color " color averaged from " count[color] " samples" > "/dev/stderr"
+        } else {
+            print "Warning: No valid data found for " color > "/dev/stderr"
         }
     }
 }' "$INPUT"
