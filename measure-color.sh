@@ -1,11 +1,6 @@
 #!/bin/sh
-#before invoking this script
-#ensure "sudo apt-get install argyll mpv" so that spotread binary and mpv are installed
-#ensure --wfile=/path/to/wfile.png exists for required resolution for white color
-#for --tempered=/path/to/tempered_binary ensure required tempered binary exists
-#when invoking this script, ensure export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
-###############################################################################
-LOOPCOUNT="none" #for 1hour, 120 samples@30sec/sample
+# Default configuration
+LOOPCOUNT="1" #default to 1 if not specified
 INTERVAL="none"
 TEMPERED="none"
 POWER="none"
@@ -19,197 +14,99 @@ YFILE="none"
 STARTUPIMG="none"
 MEASUREONLY="no"
 BRLEVEL="100"
-x=1
+MYPATH="$(pwd)"
+
+# Constants
+MAX_RETRIES=3
+RETRY_DELAY=5
+MEASUREMENT_DELAY=5
+
+# Usage information
 USAGE="usage: $0 --mypath=/automes/path --measureonly=yes/no --loop=count --interval=seconds --startupimg=white --temp=/path/to/tempered --power=/path/to/powermeas --wfile=/pathto/w.png --rfile=/pathto/r.png --gfile=/pathto/g.png --bfile=/pathto/b.png"
 NOARGS="yes"
 
-MYPATH=$(pwd) #get the path via cmdline args
-#export LD_LIBRARY_PATH=$MYPATH/brbox/output/lib
-###############################################################################
-#this function prints out the color and temperature sample of a given primary(rgb/w)
-Colour_Temp_Sample() #$1=pattern-file $2=Color-Prefix-to-print $3=/path/to/tempered $4=startup-pattern $5=mplayclt-path $6=/path/to/ka3005p,$7=path-to-tempered,$8=BrightnessLevel
-{
-	if [ $8 != "none" ]; then
-		BRLVL=$8
-	else
-		BRLVL="100"
-	fi
-	if [ $4 = "none" ]; then
-		$5 --showimg=none --showimg=$1 > /dev/null
-		sleep 5
-	fi
-    
-	#lets take the time stamp
-	DATE=$(date "+%D,%T")
-
-	#if requested, take the sample of the temperature from the usb-temperature sensor 
-	if [ $3 != "none" ]; then
-		TEMP=$(sudo $3 | awk '{print $4}')
-	else
-		TEMP="N/A"
-	fi
-	#if requested, take the sample of the power(voltage/current) from korad-ka3005p power-supply
-	if [ $6 != "none" ]; then
-		TMPPOWER=$($6 status)
-		VOLTAGE=$(echo $TMPPOWER | awk '{print $2}')
-		CURRENT=$(echo $TMPPOWER | awk '{print $5}')
-	else
-		VOLTAGE="N/A"
-		CURRENT="N/A"
-	fi
-
-   	#read the color/brightness sensor(try 3 times before giving up)
-	VAL=$(sudo spotread -x -O | grep Result | sed 's/ Result is //' | sed 's/XYZ://' | sed 's/Yxy://' | sed 's/,//')
-    WORDS=$(echo "$VAL"|wc -c)
-    if [ $WORDS = 1 ]; then #color sample failed, try again
-            #echo "failed first read"
-            sleep 5
-            VAL=$(sudo spotread -x -O | grep Result | sed 's/ Result is //' | sed 's/XYZ://' | sed 's/Yxy://' | sed 's/,//')
-            WORDS=$(echo "$VAL"|wc -c)
-            if [ $WORDS = 1 ]; then #color sample failed, try again
-                #echo "failed second read as well!!! wods=$WORDS"
-                sleep 5
-                VAL=$(sudo spotread -x -O | grep Result | sed 's/ Result is //' | sed 's/XYZ://' | sed 's/Yxy://' | sed 's/,//')
-            fi
-    fi
-
-	#fetch individual values to the corresponding variables 
-	XVAL=$(echo $VAL | awk '{print $1}')
-	YVAL=$(echo $VAL | awk '{print $2}')
-	ZVAL=$(echo $VAL | awk '{print $3}')
-	YCVAL=$(echo $VAL | awk '{print $4}')
-	xVAL=$(echo $VAL | awk '{print $5}')
-	yVAL=$(echo $VAL | awk '{print $6}')
-    
-	#print out the sampled temperature and color/brightness data
-	echo "$DATE,$TEMP,$2,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL,$VOLTAGE,$CURRENT,$BRLVL"
-	return 0
-}
-
-##############parse the arguments################################
-optspec=":h-:"
-while getopts "$optspec" optchar; do
-    case "${optchar}" in
-        -)
-            case "${OPTARG}" in
-                    loop=*) #count
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $LOOPCOUNT ] && LOOPCOUNT=${val}
-                        NOARGS="no"
-                        ;;
-                    interval=*) #image-version
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $INTERVAL ] && INTERVAL=${val}
-                        NOARGS="no"
-                        ;;
-                    temp=*) #/path/to/tempered
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $TEMPERED ] && TEMPERED=${val}
-                        NOARGS="no"
-                        ;;
-                    power=*) #/path/to/power-measure-tool
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $POWER ] && POWER=${val}
-                        NOARGS="no"
-                        ;;
-	            wfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $WFILE ] && WFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    rfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        #MKIMAGE=${val}
-                        [ ! -z $RFILE ] && RFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    gfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $GFILE ] && GFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    bfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $BFILE ] && BFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    cfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $CFILE ] && CFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    mfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $MFILE ] && MFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    yfile=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $YFILE ] && YFILE=${val}
-                        NOARGS="no"
-                        ;;
-                    brlevel=*) #brightnesslevel
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $BRLEVEL ] && BRLEVEL=${val}
-                        NOARGS="no"
-                        ;;
-		    startupimg=*) #white/red/green/cyan/magenta/yellow
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $STARTUPIMG ] && STARTUPIMG=${val}
-                        NOARGS="no"
-                        ;;
-                    measureonly=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $MEASUREONLY ] && MEASUREONLY=${val}
-                        NOARGS="no"
-                        ;;
-                    mypath=*) #yes/no
-                        val=${OPTARG#*=}
-                        opt=${OPTARG%=$val}
-                        [ ! -z $MYPATH ] && MYPATH=${val}
-                        NOARGS="no"
-                        ;;
-                *)
-                    if [ "$OPTERR" = 1 ] && [ "${optspec:0:1}" != ":" ]; then
-                        echo "Unknown option:"
-                        echo -n "${USAGE}";echo ""
-                        exit 1
-                    fi
-                    ;;
-            esac;;
-        h)
-                echo -n "${USAGE}";echo ""
-                exit 0
+# Parse command line arguments
+for arg in "$@"; do
+    case "$arg" in
+        --loop=*)
+            LOOPCOUNT="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --interval=*)
+            INTERVAL="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --temp=*)
+            TEMPERED="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --power=*)
+            POWER="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --wfile=*)
+            WFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --rfile=*)
+            RFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --gfile=*)
+            GFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --bfile=*)
+            BFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --cfile=*)
+            CFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --mfile=*)
+            MFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --yfile=*)
+            YFILE="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --brlevel=*)
+            BRLEVEL="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --startupimg=*)
+            STARTUPIMG="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --measureonly=*)
+            MEASUREONLY="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --mypath=*)
+            MYPATH="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --help|-h)
+            echo "$USAGE"
+            exit 0
             ;;
         *)
-                echo "Unknown option:"
-                echo -n "${USAGE}";echo ""
-                exit 1
+            echo "Unknown option: $arg"
+            echo "$USAGE"
+            exit 1
             ;;
     esac
 done
 
-if [ ${NOARGS} = "yes" ] ; then
-    echo -n "${USAGE}";echo ""
+if [ "$NOARGS" = "yes" ]; then
+    echo "$USAGE"
     exit 0
 fi
 
+# Setup paths
 TEMPEREDPATH="$MYPATH/Output/usb-tempered/utils/$TEMPERED"
-#POWERPATH="$MYPATH/ka3005p/target/release/$POWER"
 POWERPATH="$MYPATH/binaries/$POWER"
 MPLAYCLT="$MYPATH/brbox/output/bin/mplayclt"
 WFILEPATH="$MYPATH/patterns/$WFILE"
@@ -220,76 +117,139 @@ CFILEPATH="$MYPATH/patterns/$CFILE"
 MFILEPATH="$MYPATH/patterns/$MFILE"
 YFILEPATH="$MYPATH/patterns/$YFILE"
 
-#if valid files doesnt exists, then dont access them
-[ ! -f  $TEMPEREDPATH  ] && TEMPEREDPATH="none" 
-[ ! -f  $POWERPATH  ] && POWERPATH="none"
-[ ! -f  $MPLAYCLT  ] && MPLAYCLT="none" 
-[ ! -f  $WFILEPATH  ] && WFILEPATH="none" 
-[ ! -f  $RFILEPATH  ] && RFILEPATH="none" 
-[ ! -f  $GFILEPATH  ] && GFILEPATH="none" 
-[ ! -f  $BFILEPATH  ] && BFILEPATH="none" 
-[ ! -f  $CFILEPATH  ] && CFILEPATH="none"
-[ ! -f  $MFILEPATH  ] && MFILEPATH="none"
-[ ! -f  $YFILEPATH  ] && YFILEPATH="none"
+# Validate files
+[ ! -f "$TEMPEREDPATH" ] && TEMPEREDPATH="none"
+[ ! -f "$POWERPATH" ] && POWERPATH="none"
+[ ! -f "$MPLAYCLT" ] && MPLAYCLT="none"
+[ ! -f "$WFILEPATH" ] && WFILEPATH="none"
+[ ! -f "$RFILEPATH" ] && RFILEPATH="none"
+[ ! -f "$GFILEPATH" ] && GFILEPATH="none"
+[ ! -f "$BFILEPATH" ] && BFILEPATH="none"
+[ ! -f "$CFILEPATH" ] && CFILEPATH="none"
+[ ! -f "$MFILEPATH" ] && MFILEPATH="none"
+[ ! -f "$YFILEPATH" ] && YFILEPATH="none"
 
-#TODO: check if spotread exists
-if [ $MEASUREONLY = "no" ]; then
-    if [ $STARTUPIMG != "none" ]; then
-            $MPLAYCLT --showimg=none --showimg="$WFILEPATH" > /dev/null
-            sleep 2
+# Measure color values with retries
+measure_color() {
+    pattern_file="$1"
+    color_prefix="$2"
+    tempered_path="$3"
+    startup_pattern="$4"
+    mplayclt_path="$5"
+    power_path="$6"
+    br_level="$7"
+    
+    # Display pattern if startup_pattern is none (meaning we change for each measurement)
+    if [ "$startup_pattern" = "none" ]; then
+        $mplayclt_path --showimg=none --showimg="$pattern_file" > /dev/null
+        sleep 5
     fi
+
+    # Get timestamp
+    DATE=$(date "+%D,%T")
+
+    # Measure temperature if sensor available
+    if [ "$tempered_path" != "none" ]; then
+        TEMP=$(sudo $tempered_path | awk '{print $4}' 2>/dev/null || echo "ERROR")
+    else
+        TEMP="N/A"
+    fi
+    
+    # Measure power if available
+    if [ "$power_path" != "none" ]; then
+        TMPPOWER=$($power_path status)
+        VOLTAGE=$(echo $TMPPOWER | awk '{print $2}')
+        CURRENT=$(echo $TMPPOWER | awk '{print $5}')
+    else
+        VOLTAGE="N/A"
+        CURRENT="N/A"
+    fi
+
+    # Color measurement with retries
+    retry=1
+    while [ $retry -le $MAX_RETRIES ]; do
+        VAL=$(sudo spotread -x -O | grep Result | sed 's/ Result is //' | sed 's/XYZ://' | sed 's/Yxy://' | sed 's/,//')
+        WORDS=$(echo "$VAL" | wc -c)
+        
+        if [ $WORDS -gt 1 ]; then
+            break
+        fi
+        
+        if [ $retry -lt $MAX_RETRIES ]; then
+            sleep $RETRY_DELAY
+        fi
+        retry=$((retry + 1))
+    done
+
+    # Parse color values
+    if [ $WORDS -gt 1 ]; then
+        XVAL=$(echo $VAL | awk '{print $1}')
+        YVAL=$(echo $VAL | awk '{print $2}')
+        ZVAL=$(echo $VAL | awk '{print $3}')
+        YCVAL=$(echo $VAL | awk '{print $4}')
+        xVAL=$(echo $VAL | awk '{print $5}')
+        yVAL=$(echo $VAL | awk '{print $6}')
+        echo "$DATE,$TEMP,$color_prefix,$XVAL,$YVAL,$ZVAL,$YCVAL,$xVAL,$yVAL,$VOLTAGE,$CURRENT,$br_level"
+    else
+        echo "$DATE,$TEMP,$color_prefix,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,$VOLTAGE,$CURRENT,$br_level"
+    fi
+}
+
+# Initialize display if needed
+if [ "$MEASUREONLY" = "no" ] && [ "$STARTUPIMG" != "none" ]; then
+    $MPLAYCLT --showimg=none --showimg="$WFILEPATH" > /dev/null
+    sleep 2
 fi
 
-#lets output the heading for csv file
+# Print CSV header
 echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current,brightnesslevel"
-while [ $x -le $LOOPCOUNT ]; do
 
-	if [ $WFILE != "none" ]; then
-        Colour_Temp_Sample $WFILEPATH W $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-		[ $? != 0 ] && exit 0
+# Main measurement loop
+x=1
+while [ $x -le "$LOOPCOUNT" ]; do
+    if [ "$WFILE" != "none" ]; then
+        measure_color "$WFILEPATH" "W" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
         sleep 5
-	fi
-	
-	if [ $RFILE != "none" ]; then
-        Colour_Temp_Sample $RFILEPATH R $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-		[ $? != 0 ] && exit 0
-        sleep 5
-	fi
-
-	if [ $GFILE != "none" ]; then
-        Colour_Temp_Sample $GFILEPATH G $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-		[ $? != 0 ] && exit 0
-        sleep 5
-	fi
-	
-	if [ $BFILE != "none" ]; then
-        Colour_Temp_Sample $BFILEPATH B $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-		[ $? != 0 ] && exit 0
-        sleep 5
-	fi
-	if [ $CFILE != "none" ]; then
-        Colour_Temp_Sample $CFILEPATH C $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-                [ $? != 0 ] && exit 0
-        sleep 5
-        fi
-	if [ $MFILE != "none" ]; then
-        Colour_Temp_Sample $MFILEPATH M $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-                [ $? != 0 ] && exit 0
-        sleep 5
-        fi
-	if [ $YFILE != "none" ]; then
-        Colour_Temp_Sample $YFILEPATH Y $TEMPEREDPATH $STARTUPIMG $MPLAYCLT $POWERPATH $TEMPEREDPATH $BRLEVEL
-                [ $? != 0 ] && exit 0
-        sleep 5
-        fi
-    #wait between measurements if asked
-    if [ $INTERVAL != "none" ]; then
-        sleep $INTERVAL
     fi
-	x=$(($x+1))
+    
+    if [ "$RFILE" != "none" ]; then
+        measure_color "$RFILEPATH" "R" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    if [ "$GFILE" != "none" ]; then
+        measure_color "$GFILEPATH" "G" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    if [ "$BFILE" != "none" ]; then
+        measure_color "$BFILEPATH" "B" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    if [ "$CFILE" != "none" ]; then
+        measure_color "$CFILEPATH" "C" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    if [ "$MFILE" != "none" ]; then
+        measure_color "$MFILEPATH" "M" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    if [ "$YFILE" != "none" ]; then
+        measure_color "$YFILEPATH" "Y" "$TEMPEREDPATH" "none" "$MPLAYCLT" "$POWERPATH" "$BRLEVEL"
+        sleep 5
+    fi
+    
+    # Wait between measurements if requested
+    if [ "$INTERVAL" != "none" ]; then
+        sleep "$INTERVAL"
+    fi
+    x=$((x + 1))
 done
 
-#after completing the loop, remove the pattern
-if [ $MEASUREONLY = "no" ]; then
+# Cleanup display
+if [ "$MEASUREONLY" = "no" ]; then
     $MPLAYCLT --showimg=none > /dev/null
 fi

@@ -1,33 +1,64 @@
 #!/bin/sh
+
+# This script measures display colors by applying solid color patterns and measuring with a colorimeter.
+
+set -e  # Exit on error
+
+MYPATH="/home/pi/automeasure"
+PATTERNS="$MYPATH/patterns"
+MEASUREMENTS_PATH="$MYPATH/Measurements"
 DATE=$(date "+%Y%m%d-%H%M%S")
-export LD_LIBRARY_PATH=/home/pi/automeasure/brbox/output/lib
+LOOPCOUNT=100
+BEGIN_END_SAMPLES=3  # Number of samples for initial and final measurements
+export LD_LIBRARY_PATH="$MYPATH/brbox/output/lib"
 
-#check if ka3005p power supply is available
-/home/pi/automeasure/binaries/ka3005p status > /dev/null
-if [ $? = 0 ]; then
-	PSARG="--power=ka3005p"
+# Ensure the Measurements directory exists
+mkdir -p "$MEASUREMENTS_PATH"
+
+# Check if KA3005P power supply is available
+if "$MYPATH/binaries/ka3005p" status > /dev/null 2>&1; then
+    PSARG="--power=ka3005p"
 else
-	PSARG=""
+    PSARG=""
 fi
 
-sudo /home/pi/automeasure/Output/usb-tempered/utils/tempered 1> /dev/null 2>/dev/null
-if [ $? = 0 ]; then
-	TEMPARG="--temp=tempered"
+# Check if USB-Tempered temperature sensor is available
+if sudo "$MYPATH/Output/usb-tempered/utils/tempered" > /dev/null 2>&1; then
+    TEMPARG="--temp=tempered"
 else
-	TEMPARG=""
+    TEMPARG=""
 fi
 
-#1-initial triangle
-/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=3 --interval=5 $PSARG $TEMPARG --wfile=white.png --rfile=red.png --gfile=green.png --bfile=blue.png > /home/pi/automeasure/rgbw-begin.csv
+# Capture display info
+DISP_INFO_FILE="$MYPATH/display-info.txt"
+"$MYPATH/display_info.sh" > "$DISP_INFO_FILE"
 
-#2-white measurement(keep the pattern fixed(loop 400=3hours)
-/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=100 --interval=20 $PSARG $TEMPARG --wfile=white.png --startupimg=white.png > /home/pi/automeasure/$DATE.csv
+# Extract CustomID from display info
+DATA_PREFIX=$(awk '/CustomID/ {print $2}' "$DISP_INFO_FILE")
+[ -z "$DATA_PREFIX" ] && DATA_PREFIX="Unknown"
 
-#3-initial triangle
-/home/pi/automeasure/measure-color.sh --mypath=/home/pi/automeasure --loop=3 --interval=5 $PSARG $TEMPARG --wfile=white.png --rfile=red.png --gfile=green.png --bfile=blue.png > /home/pi/automeasure/rgbw-end.csv
+# Ensure DATA variable is set
+DATA="$DATE"
 
-#4-at the end of the measurement, let the display cooldown
-/home/pi/automeasure/brbox/output/bin/mplayclt --showimg=none
+# File paths for measurements
+BEGINFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-begin.csv"
+DATAFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-data.csv"
+ENDFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-end.csv"
 
+# Cold Measurements (Initial)
+"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$BEGIN_END_SAMPLES" --interval=5 $PSARG $TEMPARG \
+    --wfile=white.png --rfile=red.png \
+    --gfile=green.png --bfile=blue.png > "$BEGINFILE"
 
-#/home/pi/automeasure/brbox/output/bin/mplayclt --showimg=none --showimg=/home/pi/automeasure/patterns/white.png
+# White Measurement (Long-Term, 3 Hours)
+"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$LOOPCOUNT" --interval=20 $PSARG $TEMPARG \
+    --wfile=white.png --startupimg=white.png > "$DATAFILE"
+
+# Warm Measurements (Final)
+"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$BEGIN_END_SAMPLES" --interval=5 $PSARG $TEMPARG \
+    --wfile=white.png --rfile=red.png \
+    --gfile=green.png --bfile=blue.png > "$ENDFILE"
+
+# Let the display cool down
+"$MYPATH/brbox/output/bin/mplayclt" --showimg=none
+
