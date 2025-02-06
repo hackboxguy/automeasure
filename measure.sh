@@ -1,19 +1,38 @@
 #!/bin/sh
-
 # This script measures display colors by applying solid color patterns and measuring with a colorimeter.
 
-set -e  # Exit on error
+# Exit on error
+set -e
 
+# Base configuration
 MYPATH="/home/pi/automeasure"
-PATTERNS="$MYPATH/patterns"
-MEASUREMENTS_PATH="$MYPATH/Measurements"
-DATE=$(date "+%Y%m%d-%H%M%S")
-LOOPCOUNT=100
-BEGIN_END_SAMPLES=3  # Number of samples for initial and final measurements
+PATTERNS="$MYPATH/patterns"              # Pattern directory - easily configurable
+MEASUREMENTS_PATH="$MYPATH/Measurements"  # Base measurement directory
+DATE=$(date "+%Y%m%d-%H%M%S")           # Timestamp for test directory
+LOOPCOUNT=100                           # Measurements for 1 hour (120 samples @ 30sec/sample)
+BEGIN_END_SAMPLES=3                     # Number of samples for initial and final measurements
+
+# Set up library path
 export LD_LIBRARY_PATH="$MYPATH/brbox/output/lib"
 
-# Ensure the Measurements directory exists
-mkdir -p "$MEASUREMENTS_PATH"
+# Capture display info first
+DISP_INFO=$(DISPLAY=:0 "$MYPATH/display_info.sh")
+DATA_PREFIX=$(echo "$DISP_INFO" | awk '/CustomID/ {print $2}')
+[ -z "$DATA_PREFIX" ] && DATA_PREFIX="Unknown"
+
+# Create test-specific directory
+TEST_DIR="$MEASUREMENTS_PATH/$DATE"
+mkdir -p "$TEST_DIR"
+
+# Save display info
+echo "$DISP_INFO" > "$TEST_DIR/display-info.txt"
+
+# File paths for measurements (simplified names as they're in their own directory)
+BEGINFILE="$TEST_DIR/begin.csv"
+DATAFILE="$TEST_DIR/data.csv"
+ENDFILE="$TEST_DIR/end.csv"
+BEGINFILE_FILTERED="$TEST_DIR/begin-filtered.csv"
+ENDFILE_FILTERED="$TEST_DIR/end-filtered.csv"
 
 # Check if KA3005P power supply is available
 if "$MYPATH/binaries/ka3005p" status > /dev/null 2>&1; then
@@ -29,36 +48,48 @@ else
     TEMPARG=""
 fi
 
-# Capture display info
-DISP_INFO_FILE="$MYPATH/display-info.txt"
-"$MYPATH/display_info.sh" > "$DISP_INFO_FILE"
-
-# Extract CustomID from display info
-DATA_PREFIX=$(awk '/CustomID/ {print $2}' "$DISP_INFO_FILE")
-[ -z "$DATA_PREFIX" ] && DATA_PREFIX="Unknown"
-
-# Ensure DATA variable is set
-DATA="$DATE"
-
-# File paths for measurements
-BEGINFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-begin.csv"
-DATAFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-data.csv"
-ENDFILE="$MEASUREMENTS_PATH/${DATA_PREFIX}-${DATA}-end.csv"
+# Common arguments for measure-color.sh
+COMMON_ARGS="--mypath=$MYPATH --patternpath=$PATTERNS $PSARG $TEMPARG"
 
 # Cold Measurements (Initial)
-"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$BEGIN_END_SAMPLES" --interval=5 $PSARG $TEMPARG \
-    --wfile=white.png --rfile=red.png \
-    --gfile=green.png --bfile=blue.png > "$BEGINFILE"
+echo "Taking initial RGB measurements..."
+"$MYPATH/measure-color.sh" $COMMON_ARGS \
+    --loop="$BEGIN_END_SAMPLES" \
+    --interval=5 \
+    --wfile=white.png \
+    --rfile=red.png \
+    --gfile=green.png \
+    --bfile=blue.png > "$BEGINFILE"
 
-# White Measurement (Long-Term, 3 Hours)
-"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$LOOPCOUNT" --interval=20 $PSARG $TEMPARG \
-    --wfile=white.png --startupimg=white.png > "$DATAFILE"
+# White Measurement (Long-Term)
+echo "Starting long-term white measurements..."
+"$MYPATH/measure-color.sh" $COMMON_ARGS \
+    --loop="$LOOPCOUNT" \
+    --interval=20 \
+    --wfile=white.png \
+    --startupimg=white.png > "$DATAFILE"
 
 # Warm Measurements (Final)
-"$MYPATH/measure-color.sh" --mypath="$MYPATH" --loop="$BEGIN_END_SAMPLES" --interval=5 $PSARG $TEMPARG \
-    --wfile=white.png --rfile=red.png \
-    --gfile=green.png --bfile=blue.png > "$ENDFILE"
+echo "Taking final RGB measurements..."
+"$MYPATH/measure-color.sh" $COMMON_ARGS \
+    --loop="$BEGIN_END_SAMPLES" \
+    --interval=5 \
+    --wfile=white.png \
+    --rfile=red.png \
+    --gfile=green.png \
+    --bfile=blue.png > "$ENDFILE"
 
 # Let the display cool down
+echo "Measurement complete. Turning off display pattern..."
 "$MYPATH/brbox/output/bin/mplayclt" --showimg=none
 
+#lets filter the data(take only xyY of rgbw of both begin and end csv files)
+"$MYPATH/filter-wrgb-data.sh" --input="$BEGINFILE" --output="$BEGINFILE_FILTERED"
+"$MYPATH/filter-wrgb-data.sh" --input="$ENDFILE" --output="$ENDFILE_FILTERED"
+
+echo "Test results saved in: $TEST_DIR"
+echo "Files:"
+echo "  Display Info: display-info.txt"
+echo "  Begin:        begin.csv"
+echo "  Data:         data.csv"
+echo "  End:          end.csv"
