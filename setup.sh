@@ -91,7 +91,7 @@ test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 printf "Creating png grey-ramp pattern files................... "
 mkdir -p "$MYPATH/patterns/grayramp-patterns"
-./generate-grey-ramp.sh --resolution="$DISP_RES" --outputfolder="$MYPATH/patterns/grayramp-patterns/"
+./generate-grey-ramp.sh --resolution="$DISP_RES" --outputfolder="$MYPATH/patterns/greyramp-patterns/"
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 sync
