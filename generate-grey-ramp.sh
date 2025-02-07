@@ -15,7 +15,7 @@ log() {
 # Function to print progress
 progress() {
     if [ $VERBOSE -eq 1 ]; then
-        echo -ne "$@"
+        printf "%s" "$1"
     fi
 }
 
@@ -37,13 +37,22 @@ validate_resolution() {
 validate_output_folder() {
     local folder=$1
     
-    # Check if folder path is absolute
-    if [[ ! "$folder" = /* ]]; then
-        folder="$(pwd)/$folder"
-        log "Note: Converting to absolute path: $folder"
+    # Convert to absolute path if relative
+    case "$folder" in
+        /*) ;;  # Path is absolute, do nothing
+        *) folder="$(pwd)/$folder"
+           log "Note: Converting to absolute path: $folder"
+           ;;
+    esac
+    # Create parent directories if they don't exist
+    parent_dir=$(dirname "$folder")
+    if ! mkdir -p "$parent_dir" 2>/dev/null; then
+        error "Unable to create parent directory: $parent_dir"
+        error "Please check permissions and path validity"
+        exit 1
     fi
     
-    # Try to create the folder
+    # Create the output folder itself
     if ! mkdir -p "$folder" 2>/dev/null; then
         error "Unable to create output folder: $folder"
         error "Please check permissions and path validity"
@@ -57,6 +66,12 @@ validate_output_folder() {
     fi
     
     echo "$folder"
+}
+
+# Function to check available disk space (in MB)
+check_disk_space() {
+    local folder=$1
+    df -m "$folder" 2>/dev/null | awk 'NR==2 {print $4}'
 }
 
 # Parse command line arguments
@@ -110,18 +125,20 @@ HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
 
 # Check disk space
 required_space=$((WIDTH * HEIGHT * 256 * 4 / 1024 / 1024))
-available_space=$(df -m "$OUTPUT_FOLDER" | awk 'NR==2 {print $4}')
+available_space=$(check_disk_space "$OUTPUT_FOLDER")
 
-if [ $available_space -lt $required_space ]; then
+# Only check disk space if we got a valid number
+if [ -n "$available_space" ] && [ "$available_space" -lt "$required_space" ]; then
     error "Low disk space!"
     error "Estimated space required: ${required_space}MB"
     error "Available space: ${available_space}MB"
     if [ $VERBOSE -eq 1 ]; then
-        read -p "Do you want to continue? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
+        printf "Do you want to continue? (y/N) "
+        read REPLY
+        case "$REPLY" in
+            [Yy]*) ;;
+            *) exit 1 ;;
+        esac
     else
         exit 1
     fi
@@ -136,9 +153,10 @@ log "This will create 256 PNG files..."
 log ""
 
 # Generate grayscale images
-for i in $(seq 0 255); do
+i=0
+while [ $i -le 255 ]; do
     output_file="${OUTPUT_FOLDER}/gray_${i}.png"
-    if ! convert -size "${WIDTH}x${HEIGHT}" xc:"rgb($i,$i,$i)" "$output_file" 2>/dev/null; then
+    if ! convert -size "${WIDTH}x${HEIGHT}" "xc:rgb($i,$i,$i)" "$output_file" 2>/dev/null; then
         error "Failed to generate image: $output_file"
         error "Please check if you have sufficient disk space and permissions"
         exit 1
@@ -146,11 +164,12 @@ for i in $(seq 0 255); do
     
     # Show progress only in verbose mode
     progress "Generating: $((i + 1))/256 images [$(($i * 100 / 255))%]\r"
+    i=$((i + 1))
 done
 
 # Final output only in verbose mode
 if [ $VERBOSE -eq 1 ]; then
     total_size=$(du -sh "$OUTPUT_FOLDER" | cut -f1)
-    echo -e "\nDone! Generated 256 grayscale images in $OUTPUT_FOLDER"
-    echo "Total size: $total_size"
+    printf "\nDone! Generated 256 grayscale images in %s\n" "$OUTPUT_FOLDER"
+    printf "Total size: %s\n" "$total_size"
 fi
