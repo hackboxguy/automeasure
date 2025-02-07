@@ -79,6 +79,8 @@ echo "Taking final RGB measurements..."
     --gfile=green.png \
     --bfile=blue.png > "$ENDFILE"
 
+# Measure Grey-Ramp
+
 # Let the display cool down
 echo "Measurement complete. Turning off display pattern..."
 "$MYPATH/brbox/output/bin/mplayclt" --showimg=none

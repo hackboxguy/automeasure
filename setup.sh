@@ -1,5 +1,5 @@
 #!/bin/sh
-#./setup.sh -t 14.6 
+#./setup.sh -r 1920x1080
 USAGE="usage:$0 -r <disp_resolution> -p <optional_create_patterns_only>"
 DISP_RES="none"
 PATTERNS_ONLY="none"
@@ -44,7 +44,7 @@ fi
 #install dependencies
 printf "Installing dependencies ................................ "
 DEBIAN_FRONTEND=noninteractive apt-get update --fix-missing < /dev/null > /dev/null
-DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim < /dev/null > /dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim xxd < /dev/null > /dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 # Check if the folder brbox exists
@@ -87,6 +87,11 @@ convert -size "$DISP_RES" xc:rgb\(000,000,255\) $MYPATH/patterns/blue.png
 convert -size "$DISP_RES" xc:rgb\(000,255,255\) $MYPATH/patterns/cyan.png
 convert -size "$DISP_RES" xc:rgb\(255,000,255\) $MYPATH/patterns/magenta.png
 convert -size "$DISP_RES" xc:rgb\(255,255,000\) $MYPATH/patterns/yellow.png
+test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
+
+printf "Creating png grey-ramp pattern files................... "
+mkdir -p "$MYPATH/patterns/grayramp-patterns"
+./generate-grey-ramp.sh --resolution="$DISP_RES" --outputfolder="$MYPATH/patterns/grayramp-patterns/"
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 sync
