@@ -89,7 +89,7 @@ while [ $# -gt 0 ]; do
             ;;
         --help)
             echo "Usage: $0 [--outputfolder=/path] [--resolution=WIDTHxHEIGHT] [--verbose]"
-            echo "Generates 256 grayscale PNG images (0-255)"
+            echo "Generates 256 greyscale PNG images (0-255)"
             echo ""
             echo "Options:"
             echo "  --outputfolder=/path    Output directory for generated images"
@@ -97,7 +97,7 @@ while [ $# -gt 0 ]; do
             echo "  --verbose               Show detailed progress information"
             echo ""
             echo "Example:"
-            echo "  $0 --outputfolder=/tmp/grays --resolution=1280x720 --verbose"
+            echo "  $0 --outputfolder=/tmp/greys --resolution=1280x720 --verbose"
             exit 0
             ;;
         *)
@@ -152,10 +152,10 @@ log "- Estimated space required: ${required_space}MB"
 log "This will create 256 PNG files..."
 log ""
 
-# Generate grayscale images
+# Generate greyscale images
 i=0
 while [ $i -le 255 ]; do
-    output_file="${OUTPUT_FOLDER}/gray_${i}.png"
+    output_file="${OUTPUT_FOLDER}/grey_${i}.png"
     if ! convert -size "${WIDTH}x${HEIGHT}" "xc:rgb($i,$i,$i)" "$output_file" 2>/dev/null; then
         error "Failed to generate image: $output_file"
         error "Please check if you have sufficient disk space and permissions"
@@ -170,6 +170,6 @@ done
 # Final output only in verbose mode
 if [ $VERBOSE -eq 1 ]; then
     total_size=$(du -sh "$OUTPUT_FOLDER" | cut -f1)
-    printf "\nDone! Generated 256 grayscale images in %s\n" "$OUTPUT_FOLDER"
+    printf "\nDone! Generated 256 greyscale images in %s\n" "$OUTPUT_FOLDER"
     printf "Total size: %s\n" "$total_size"
 fi
