@@ -17,6 +17,7 @@ YFILE="none"
 STARTUPIMG="none"
 MEASUREONLY="no"
 BRLEVEL="100"
+NOHEADER="no"
 MYPATH="$(pwd)"
 PATTERNPATH="$MYPATH/patterns"  # Default pattern path
 
@@ -29,8 +30,9 @@ MEASUREMENT_DELAY=5
 USAGE="usage: $0 
     --mypath=/automes/path 
     --patternpath=/path/to/patterns
-    --measureonly=yes/no 
+    --measureonly=yes/no
     --loop=count 
+    --noheader=yes/no
     --interval=seconds 
     --startupimg=white 
     --temp=/path/to/tempered 
@@ -139,6 +141,10 @@ for arg in "$@"; do
             ;;
         --loop=*)
             LOOPCOUNT="${arg#*=}"
+            NOARGS="no"
+            ;;
+        --noheader=*)
+            NOHEADER="${arg#*=}"
             NOARGS="no"
             ;;
         --interval=*)
@@ -253,7 +259,9 @@ if [ "$MEASUREONLY" = "no" ] && [ "$STARTUPIMG" != "none" ]; then
 fi
 
 # Print CSV header
-echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current,brightnesslevel"
+if [ "$NOHEADER" = "no" ]; then
+	echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current,brightnesslevel"
+fi
 
 # Main measurement loop
 x=1
