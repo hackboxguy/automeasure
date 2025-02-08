@@ -24,9 +24,9 @@ done
 [ ! -f "$input" ] && echo "Input file not found" && exit 1
 
 # Write header
-echo "Level,Y,x,y" > "$output"
+echo "Color,Level,Y,x,y" > "$output"
 
 # Extract and format required columns
-sed -n '2,$p' "$input" | while IFS=, read -r _ _ _ _ _ Y _ _ x y _ _ level; do
-   printf "%s,%s,%s,%s\n" "$level" "$Y" "$x" "$y" >> "$output"
+sed -n '2,$p' "$input" | while IFS=, read -r _ _ _ Col _ Y _ _ x y _ _ level; do
+   printf "%s,%s,%s,%s,%s\n" "$Col" "$level" "$Y" "$x" "$y" >> "$output"
 done
