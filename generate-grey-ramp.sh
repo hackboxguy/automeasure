@@ -18,7 +18,7 @@ show_help() {
    echo "                         R = Red ramp (R:0-255, G:0, B:0)"
    echo "                         G = Green ramp (R:0, G:0-255, B:0)"
    echo "                         B = Blue ramp (R:0, G:0, B:0-255)"
-   echo "                         W = White ramp (R:0-255, G:0-255, B:0-255)"
+   echo "                         W = White ramp (8-bit grayscale 0-255)"
    echo "                         all = Generate all ramps (RGBW)"
    echo "  --verbose               Show detailed progress information"
    echo ""
@@ -65,7 +65,7 @@ validate_color() {
            error "R = Red ramp (R:0-255, G:0, B:0)"
            error "G = Green ramp (R:0, G:0-255, B:0)"
            error "B = Blue ramp (R:0, G:0, B:0-255)"
-           error "W = White ramp (R:0-255, G:0-255, B:0-255)"
+           error "W = White ramp (8-bit grayscale 0-255)"
            error "all = Generate all ramps (RGBW)"
            exit 1
            ;;
@@ -117,7 +117,7 @@ get_rgb_values() {
        R) echo "$intensity,0,0" ;;
        G) echo "0,$intensity,0" ;;
        B) echo "0,0,$intensity" ;;
-       W) echo "$intensity,$intensity,$intensity" ;;
+       W) echo "gray($intensity)" ;;
    esac
 }
 
@@ -128,7 +128,7 @@ get_color_name() {
        R) echo "red" ;;
        G) echo "green" ;;
        B) echo "blue" ;;
-       W) echo "grey" ;;
+       W) echo "gray" ;;
    esac
 }
 
@@ -150,14 +150,43 @@ generate_ramp() {
         rgb_values=$(get_rgb_values "$i" "$color")
         output_file="${OUTPUT_FOLDER}/${color_name}_${i}.png"
 
-        # Most basic, straightforward RGB PNG generation with minimal flags
-        if ! convert -size "${WIDTH}x${HEIGHT}" \
-             "xc:rgb($rgb_values)" \
-             -depth 8 \
-             -colorspace RGB \
-             "$output_file" 2>/dev/null; then
-            error "Failed to generate image: $output_file"
-            error "Please check if you have sufficient disk space and permissions"
+        if [ "$color" = "W" ]; then
+            # For grayscale, use Gray colorspace with 8-bit depth
+            if ! convert -size "${WIDTH}x${HEIGHT}" \
+                 -depth 8 \
+                 "xc:gray($i)" \
+                 -colorspace gray \
+                 -define png:bit-depth=8 \
+                 -define png:color-type=0 \
+                 "$output_file" 2>/dev/null; then
+                error "Failed to generate image: $output_file"
+                error "Please check if you have sufficient disk space and permissions"
+                exit 1
+            fi
+        else
+            # For RGB colors, enforce 8-bit per channel
+            if ! convert -size "${WIDTH}x${HEIGHT}" \
+                 -depth 8 \
+                 "xc:rgb($rgb_values)" \
+                 -colorspace RGB \
+                 -define png:bit-depth=8 \
+                 -define png:color-type=2 \
+                 "$output_file" 2>/dev/null; then
+                error "Failed to generate image: $output_file"
+                error "Please check if you have sufficient disk space and permissions"
+                exit 1
+            fi
+        fi
+
+        # Verify file was created
+        if [ ! -f "$output_file" ]; then
+            error "Failed to create file: $output_file"
+            exit 1
+        fi
+
+        # Use 'file' command to verify PNG format
+        if ! file "$output_file" | grep -q "PNG image data"; then
+            error "Generated file is not a valid PNG: $output_file"
             exit 1
         fi
 
@@ -167,7 +196,6 @@ generate_ramp() {
 
     [ $VERBOSE -eq 1 ] && echo ""
 }
-
 # Show help if no arguments provided
 if [ $# -eq 0 ]; then
    show_help
