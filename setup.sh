@@ -44,7 +44,8 @@ fi
 #install dependencies
 printf "Installing dependencies ................................ "
 DEBIAN_FRONTEND=noninteractive apt-get update --fix-missing < /dev/null > /dev/null
-DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim xxd < /dev/null > /dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -qq argyll libhidapi-dev imagemagick cmake git libjson-c-dev fim xxd python3-pip python3-pandas python3-shapely < /dev/null > /dev/null
+pip3 install --break-system-packages colour-science > /dev/null 2>&1
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 # Check if the folder brbox exists

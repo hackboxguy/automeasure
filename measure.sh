@@ -11,6 +11,7 @@ MEASUREMENTS_PATH="$MYPATH/Measurements"  # Base measurement directory
 DATE=$(date "+%Y%m%d-%H%M%S")           # Timestamp for test directory
 LOOPCOUNT=1                           # Measurements for 1 hour (120 samples @ 30sec/sample)
 BEGIN_END_SAMPLES=3                     # Number of samples for initial and final measurements
+WHITE_POINT_TOL="0.15"
 
 # Set up library path
 export LD_LIBRARY_PATH="$MYPATH/brbox/output/lib"
@@ -111,6 +112,17 @@ echo "Measurement complete. Turning off display pattern..."
 "$MYPATH/filter-wrgb-data.sh" --input="$BEGINFILE" --output="$BEGINFILE_FILTERED"
 "$MYPATH/filter-wrgb-data.sh" --input="$ENDFILE" --output="$ENDFILE_FILTERED"
 "$MYPATH/filter-greyramp-data.sh" --input="$GREYRAMPPATH" --output="$GREYRAMPPATH_FILTERED"
+
+# generate ntsc analysis image
+NTSC_OUT_INFO="$TEST_DIR/ntsc.info"
+NTSC_OUT_JPG="$TEST_DIR/ntsc.jpg"
+echo "Analyzing gamut for NTSC reference..."
+"$MYPATH/analyze-2d-gamut.py" \
+    --inputcsv="$ENDFILE_FILTERED" \
+    --inputcsvcold="$BEGINFILE_FILTERED" \
+    --reference=ntsc \
+    --output="$NTSC_OUT_JPG" \
+    --whitepointtol="$WHITE_POINT_TOL" > "$NTSC_OUT_INFO"
 
 echo "Test results saved in: $TEST_DIR"
 echo "Files:"
