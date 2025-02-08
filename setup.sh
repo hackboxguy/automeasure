@@ -75,7 +75,7 @@ systemctl enable $MYPATH/automeasure.service 1>/dev/null 2>/dev/null
 systemctl start automeasure.service 1>/dev/null 2>/dev/null
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
-printf "Creating png pattern files............................. "
+printf "Creating png pattern files.............................. "
 mkdir -p $MYPATH/patterns
 #if [ $DISP_TYPE = "1920x1080" ]; then
 #elif [ $DISP_TYPE = "14.6" ]; then
@@ -89,9 +89,9 @@ convert -size "$DISP_RES" xc:rgb\(255,000,255\) $MYPATH/patterns/magenta.png
 convert -size "$DISP_RES" xc:rgb\(255,255,000\) $MYPATH/patterns/yellow.png
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
-printf "Creating png grey-ramp pattern files................... "
-mkdir -p "$MYPATH/patterns/grayramp-patterns"
-./generate-grey-ramp.sh --resolution="$DISP_RES" --outputfolder="$MYPATH/patterns/greyramp-patterns/"
+printf "Creating png grey-ramp pattern files.................... "
+mkdir -p "$MYPATH/patterns/greyramp-patterns"
+./generate-grey-ramp.sh --resolution="$DISP_RES" --color=all --outputfolder="$MYPATH/patterns/greyramp-patterns/"
 test 0 -eq $? && echo "[OK]" || echo "[FAIL]"
 
 sync

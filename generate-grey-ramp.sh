@@ -128,7 +128,7 @@ get_color_name() {
        R) echo "red" ;;
        G) echo "green" ;;
        B) echo "blue" ;;
-       W) echo "gray" ;;
+       W) echo "grey" ;;
    esac
 }
 

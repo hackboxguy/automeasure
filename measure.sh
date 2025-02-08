@@ -88,12 +88,18 @@ COMMON_ARGS="--mypath=$MYPATH --patternpath=$PATTERNS $PSARG $TEMPARG"
 echo "DATE,TIME,temp,Sampled-Color,X,Y,Z,Y,x,y,voltage,current,brightnesslevel" > $GREYRAMPPATH
 i=0
 for i in 0 13 26 38 51 64 77 89 102 115 128 140 153 166 179 191 204 217 230 255; do
-        RAMPFILE="grey_${i}.png"
+        WRAMPFILE="grey_${i}.png"
+        RRAMPFILE="red_${i}.png"
+        GRAMPFILE="green_${i}.png"
+        BRAMPFILE="blue_${i}.png"
         "$MYPATH/measure-color.sh" $COMMON_ARGS \
                 --loop=1 \
                 --noheader=yes \
-                --interval=1 \
-                --wfile="$RAMPFILE" \
+                --interval=3 \
+                --wfile="$WRAMPFILE" \
+                --rfile="$RRAMPFILE" \
+                --gfile="$GRAMPFILE" \
+                --bfile="$BRAMPFILE" \
                 --brlevel="$i" >> "$GREYRAMPPATH"
 done
 
